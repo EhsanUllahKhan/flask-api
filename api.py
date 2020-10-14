@@ -8,6 +8,35 @@ api = Api(app)
 parser = reqparse.RequestParser()
 
 
+class Student(Resource):
+    def get(self, student_id):
+        if student_id not in STUDENTS:
+            return "Not found", 404
+        else:
+            return STUDENTS[student_id]
+
+    def put(self, student_id):
+        parser.add_argument("name")
+        parser.add_argument("age")
+        parser.add_argument("spec")
+        args = parser.parse_args()
+        if student_id not in STUDENTS:
+            return "Record not found", 404
+        else:
+            student = STUDENTS[student_id]
+            student["name"] = args["name"] if args["name"] is not None else student["name"]
+            student["age"] = args["age"] if args["age"] is not None else student["age"]
+            student["spec"] = args["spec"] if args["spec"] is not None else student["spec"]
+            return student, 200
+
+    def delete(self, student_id):
+        if student_id not in STUDENTS:
+            return "Not found", 404
+        else:
+            del STUDENTS[student_id]
+            return '', 204
+
+
 class StudentsList(Resource):
     def get(self):
         return STUDENTS
@@ -34,6 +63,7 @@ STUDENTS = {
     '4': {'name': 'Kate', 'age': 22, 'spec': 'science'},
 }
 
+api.add_resource(Student, '/students/<student_id>')
 api.add_resource(StudentsList, '/students/')
 
 

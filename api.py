@@ -1,12 +1,40 @@
 from flask import Flask
 from flask_restful import Resource, Api, reqparse
 import json
+import mysql.connector as mysql
 
 app = Flask(__name__)
 api = Api(app)
 
 
 parser = reqparse.RequestParser()
+
+
+db = mysql.connect(
+    host="localhost",
+    user="root",
+    passwd="mysql",
+    database="studentsdb"
+)
+
+# print(db)
+cursor = db.cursor()
+#cursor.execute("CREATE DATABASE STUDENTSdb")
+# cursor.execute("SHOW DATABASES")
+# databases = cursor.fetchall()
+# print(databases)
+# cursor.execute("CREATE TABLE users (id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY, name VARCHAR(255), age INT(11) ,spec VARCHAR(255))")
+# cursor.execute("SHOW TABLES")
+# tables = cursor.fetchall()
+# for table in tables:
+#     print(table)
+
+
+insert_query = "INSERT INTO users (name, age, spec) VALUES (%s, %s, %s)"
+select_all_students = "SELECT * FROM users"
+select_user_record = "SELECT * FROM users where id=%s "
+update_record = "UPDATE users SET name =%s, age=%s, spec=%s WHERE id=%s"
+delete_query = "DELETE FROM users WHERE id =%s"
 
 
 def selectAllStudents():
@@ -18,48 +46,25 @@ def selectAllStudents():
 class Student(Resource):
 
     def get(self, student_id):
-        data = {}
-        with open('data.json') as json_file:
-            data = json.load(json_file)
-
-        if str(student_id) not in data:
-            return "Not found", 404
-        else:
-            return data[str(student_id)]
+        cursor.execute(select_user_record % student_id)
+        return cursor.fetchone()
 
     def put(self, student_id):
-        data = {}
-        with open('data.json') as json_file:
-            data = json.load(json_file)
-
         parser.add_argument("name")
         parser.add_argument("age")
         parser.add_argument("spec")
         args = parser.parse_args()
-        if str(student_id) not in data:
-            return "Not found", 404
-        else:
-            student = data[str(student_id)]
-            student["name"] = args["name"] if args["name"] is not None else student["name"]
-            student["age"] = args["age"] if args["age"] is not None else student["age"]
-            student["spec"] = args["spec"] if args["spec"] is not None else student["spec"]
-            with open("data.json", "w") as write_file:
-                write_file.write(json.dumps(data))
-            return student, 200
+        values = [
+            (args["name"], args["age"], args["spec"], student_id)
+        ]
+        cursor.executemany(update_record, values)
+        db.commit()
+        return '', 200
 
     def delete(self, student_id):
-        data = {}
-        with open('data.json') as json_file:
-            data = json.load(json_file)
-
-        if str(student_id) not in data:
-            return "Not found", 404
-        else:
-            del data[str(student_id)]
-            with open("data.json", "w") as write_file:
-                write_file.write(json.dumps(data))
-
-            return '', 204
+        cursor.execute(delete_query % student_id)
+        db.commit()
+        return '', 204
 
 
 class StudentsList(Resource):

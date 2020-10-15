@@ -9,6 +9,12 @@ api = Api(app)
 parser = reqparse.RequestParser()
 
 
+def selectAllStudents():
+    cursor.execute(select_all_students)
+    STUDENTS = cursor.fetchall()
+    return STUDENTS
+
+
 class Student(Resource):
 
     def get(self, student_id):
@@ -58,38 +64,23 @@ class Student(Resource):
 
 class StudentsList(Resource):
     def get(self):
-        data = {}
-        with open('data.json') as json_file:
-            data = json.load(json_file)
-        return data
+        return selectAllStudents()
 
     def post(self):
-        data = {}
-        with open('data.json') as json_file:
-            data = json.load(json_file)
         parser.add_argument("name")
         parser.add_argument("age")
         parser.add_argument("spec")
         args = parser.parse_args()
-        student_id = int(max(data.keys())) + 1
-        student_id = '%i' % student_id
-        data[str(student_id)] = {
-            "name": args["name"],
-            "age": args["age"],
-            "spec": args["spec"],
-        }
+        values = [
+            (args["name"], args["age"], args["spec"])
+        ]
 
-        with open("D:\Self learning\Working with api\Flask API\data.json", "w") as write_file:
-            json.dump(data, write_file)
-
-        return data[str(student_id)], 201
+        cursor.executemany(insert_query, values)
+        db.commit()
+        return STUDENTS, 201
 
 
 STUDENTS = {
-    '1': {'name': 'Mark', 'age': 23, 'spec': 'math'},
-    '2': {'name': 'Jane', 'age': 20, 'spec': 'biology'},
-    '3': {'name': 'Peter', 'age': 21, 'spec': 'history'},
-    '4': {'name': 'Kate', 'age': 22, 'spec': 'science'},
 }
 
 api.add_resource(Student, '/students/<student_id>')
